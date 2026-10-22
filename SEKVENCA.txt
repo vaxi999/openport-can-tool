@@ -1,4 +1,4 @@
-; OK klik 200 ms, zatim otpustanje
+; OK click for 200 ms, then release
 5C1#28 00 00 60@100
 5C1#28 00 00 60@100
 5C1#00 00 00 60@100
