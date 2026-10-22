@@ -191,7 +191,7 @@ static uint32_t view_ids[32];static unsigned view_count;
 static char monitor_lines[96][144];static unsigned monitor_next,monitor_count,monitor_dirty;
 static WChar monitor_wide[14500],input_wide[22000];
 static char script_text[22000],input_buffer[22000],status_buffer[512];
-static const char example_script[]="; OK klik, zatim otpustanje\r\n5C1#28 00 00 60@100\r\n5C1#28 00 00 60@100\r\n5C1#00 00 00 60@100\r\n5C1#00 00 00 60@200";
+static const char example_script[]="; OK click, then release\r\n5C1#28 00 00 60@100\r\n5C1#28 00 00 60@100\r\n5C1#00 00 00 60@100\r\n5C1#00 00 00 60@200";
 
 static void caption(Handle h,const char *s){WChar out[1024];unsigned i;for(i=0;i<1023 && s[i];i++)out[i]=(uint8_t)s[i];out[i]=0;pSetWindowTextW(h,out);}
 static char *append(char *p,const char *s){while(*s)*p++=*s++;return p;}
@@ -257,7 +257,7 @@ static void stop_all(const char *reason){
 static void receive_batch(void){
     Dword n=64;Status s;unsigned i,k;
     s=jRead(channel,rx_messages,&n,0);
-    if(n>64){read_errors++;action_note("Drajver je vratio neispravan broj RX poruka.");failed=1;return;}
+    if(n>64){read_errors++;action_note("The driver returned an invalid RX message count.");failed=1;return;}
     if(s==16)return;
     if(s==0x12){overflows++;text("RX BUFFER OVERFLOW: data loss in capture.\r\n");csv_frame("RX_OVERFLOW",0,0,0,0,(Dword)s);}
     else if(s && s!=9){read_errors++;error("PassThruReadMsgs",s);failed=1;return;}
@@ -273,37 +273,37 @@ static void receive_batch(void){
 }
 static void update_status(void){
     char *p=status_buffer;
-    p=append(p,connected?"POVEZANO | ":"NIJE POVEZANO | ");p=decimal(p,bitrate);p=append(p,extended?" bit/s | 29-bit":" bit/s | 11-bit");
-    p=append(p," | TX prihvacen: ");p=decimal(p,tx_accepted);p=append(p," | RX: ");p=decimal(p,rx_count);p=append(p," | TX greske: ");p=decimal(p,tx_failed);
-    p=append(p,"\r\nSlanje: ");p=append(p,schedule.active?"PONAVLJANJE/SEKVENCA":wheel_enabled?"VOLAN":"ZAUSTAVLJENO");
-    p=append(p," | Zavrsenih ciklusa: ");p=decimal(p,schedule.completed);p=append(p," | Izgubljeni RX blokovi: ");p=decimal(p,overflows);
-    if(log_failed)p=append(p," | GRESKA SNIMANJA");else if(failed)p=append(p," | GRESKA DRAJVERA");
+    p=append(p,connected?"CONNECTED | ":"DISCONNECTED | ");p=decimal(p,bitrate);p=append(p,extended?" bit/s | 29-bit":" bit/s | 11-bit");
+    p=append(p," | TX accepted: ");p=decimal(p,tx_accepted);p=append(p," | RX: ");p=decimal(p,rx_count);p=append(p," | TX errors: ");p=decimal(p,tx_failed);
+    p=append(p,"\r\nSending: ");p=append(p,schedule.active?"REPEAT/SEQUENCE":wheel_enabled?"STEERING":"STOPPED");
+    p=append(p," | Completed cycles: ");p=decimal(p,schedule.completed);p=append(p," | Lost RX blocks: ");p=decimal(p,overflows);
+    if(log_failed)p=append(p," | LOG ERROR");else if(failed)p=append(p," | DRIVER ERROR");
     *p=0;caption(status_label,status_buffer);refresh_monitor();
 }
 static void set_connection_controls(void){
     pEnableWindow(path_edit,!connected);pEnableWindow(rate_edit,!connected);pEnableWindow(extended_check,!connected);
     pEnableWindow(connect_button,!connected && !log_failed);pEnableWindow(disconnect_button,connected);
 }
-static int can_operate(void){if(!connected || failed || log_failed){action_note("Prvo povezi OpenPort. Provjeri TXT log ako veza ne radi.");return 0;}return 1;}
+static int can_operate(void){if(!connected || failed || log_failed){action_note("Connect OpenPort first. Check the TXT log if connection fails.");return 0;}return 1;}
 static void wheel_click(unsigned key,unsigned duration){
-    if(!can_operate())return;if(extended){action_note("Profil volana koristi 11-bit CAN. Prekini vezu i iskljuci 29-bit.");return;}
+    if(!can_operate())return;if(extended){action_note("The steering profile uses 11-bit CAN. Disconnect and disable 29-bit mode.");return;}
     if(schedule.active)stop_all(0);
     if(!wheel_enabled){buttons_init(&buttons,send_button,0,pGetTickCount());wheel_enabled=1;}
-    if(buttons_enqueue(&buttons,key,duration))action_note("VOLAN: klik dodat. STOP otpusta tipku i prekida neutralne poruke.");else action_note("Red klikova je pun.");
+    if(buttons_enqueue(&buttons,key,duration))action_note("STEERING: click queued. STOP releases the button and stops neutral frames.");else action_note("The click queue is full.");
 }
 static void manual_send(unsigned repeating){
     CanFrame f;char id[40],data[100],ntext[32];uint32_t period=100,limit=1;
     if(!can_operate())return;
     if(!get_ascii(id_edit,id,sizeof(id)) || !get_ascii(data_edit,data,sizeof(data)) || !can_frame(id,data,extended,&f)){
-        action_note("Neispravan CAN ID ili HEX podaci. Najvise 8 bajtova, po dvije HEX cifre.");return;}
+        action_note("Invalid CAN ID or HEX data. Maximum 8 bytes, two HEX digits per byte.");return;}
     if(repeating){
-        if(!get_ascii(interval_edit,ntext,sizeof(ntext)) || !can_uint(ntext,60000,&period) || period<20){action_note("Interval mora biti 20 do 60000 ms.");return;}
-        if(!get_ascii(count_edit,ntext,sizeof(ntext)) || !can_uint(ntext,1000000,&limit)){action_note("Broj ponavljanja: 1 do 1000000, ili 0 za stalno.");return;}
+        if(!get_ascii(interval_edit,ntext,sizeof(ntext)) || !can_uint(ntext,60000,&period) || period<20){action_note("Interval must be between 20 and 60000 ms.");return;}
+        if(!get_ascii(count_edit,ntext,sizeof(ntext)) || !can_uint(ntext,1000000,&limit)){action_note("Repeat count: 1 to 1000000, or 0 for continuous sending.");return;}
     }
     stop_all(0);
-    if(!repeating){if(send_frame(0,&f)==0)action_note("Komanda prihvacena u OpenPort. Prati RX i reakciju table.");return;}
+    if(!repeating){if(send_frame(0,&f)==0)action_note("OpenPort accepted the command. Monitor RX and the cluster response.");return;}
     schedule.steps[0].frame=f;schedule.steps[0].delay=period;can_schedule_start(&schedule,1,limit,pGetTickCount(),send_frame,0);
-    action_note("Ponavljanje pokrenuto. STOP prekida slanje.");
+    action_note("Repeat started. STOP ends transmission.");
 }
 static void sequence_start(void){
     unsigned count,line;uint32_t limit;char cycles[32],message[100],*p;
@@ -311,24 +311,24 @@ static void sequence_start(void){
     /* An old schedule must not keep using partially replaced steps. */
     stop_all(0);
     if(!get_ascii(script_edit,script_text,sizeof(script_text)) || !get_ascii(cycles_edit,cycles,sizeof(cycles)) || !can_uint(cycles,1000000,&limit)){
-        action_note("Sekvenca mora biti ASCII HEX tekst. Ciklusi: 0 do 1000000.");return;}
+        action_note("Sequence must be ASCII HEX text. Cycles: 0 to 1000000.");return;}
     if(!can_script(script_text,extended,schedule.steps,&count,&line)){
-        p=append(message,"Greska sekvence u redu ");p=decimal(p,line);p=append(p,". Format: 5C1#28 00 00 60@100");*p=0;action_note(message);return;
+        p=append(message,"Sequence error on line ");p=decimal(p,line);p=append(p,". Format: 5C1#28 00 00 60@100");*p=0;action_note(message);return;
     }
-    can_schedule_start(&schedule,count,limit,pGetTickCount(),send_frame,0);action_note("Sekvenca pokrenuta. Sve linije su provjerene prije slanja.");
+    can_schedule_start(&schedule,count,limit,pGetTickCount(),send_frame,0);action_note("Sequence started. All lines were validated before sending.");
 }
 static void apply_filter(void){
     char raw[300],one[40];uint32_t ids[32];unsigned i=0,j,n=0,k;
-    if(!get_ascii(filter_edit,raw,sizeof(raw))){action_note("Filter: unesi HEX ID-eve razdvojene zarezom ili *.");return;}
+    if(!get_ascii(filter_edit,raw,sizeof(raw))){action_note("Filter: enter comma-separated HEX IDs or *.");return;}
     while(can_space(raw[i]))i++;
-    if(!raw[i] || (raw[i]=='*' && !raw[i+1])){view_count=0;monitor_count=monitor_next=0;monitor_dirty=1;action_note("Prikaz: svi ID-evi. CSV uvijek snima sve primljene okvire.");return;}
+    if(!raw[i] || (raw[i]=='*' && !raw[i+1])){view_count=0;monitor_count=monitor_next=0;monitor_dirty=1;action_note("Display: all IDs. CSV always records all received frames.");return;}
     while(raw[i]){
         j=0;while(raw[i] && raw[i]!=','){if(j+1>=sizeof(one))goto invalid;one[j++]=raw[i++];}one[j]=0;
         if(n==32 || !can_id(one,1,&ids[n++]))goto invalid;
         if(raw[i]==','){i++;if(!raw[i])goto invalid;}
     }
-    for(k=0;k<n;k++)view_ids[k]=ids[k];view_count=n;monitor_count=monitor_next=0;monitor_dirty=1;action_note("Filter prikaza primijenjen. CSV i dalje snima sav RX.");return;
-invalid:action_note("Neispravan filter. Primjer: 5C1,6C8,6DF. Za sve upisi *.");
+    for(k=0;k<n;k++)view_ids[k]=ids[k];view_count=n;monitor_count=monitor_next=0;monitor_dirty=1;action_note("Display filter applied. CSV still records all RX.");return;
+invalid:action_note("Invalid filter. Example: 5C1,6C8,6DF. Enter * for all IDs.");
 }
 static int sibling_path(WChar *out,const char *name){
     unsigned n=pGetModuleFileNameW(0,out,1900),i;if(!n || n>=1900)return 0;
@@ -339,20 +339,20 @@ static void sequence_file(unsigned saving){
     WChar path[2048];Handle file;Dword n,w;unsigned i,start=0;
     if(!sibling_path(path,"SEKVENCA.txt"))return;
     if(saving){
-        if(!get_ascii(script_edit,input_buffer,sizeof(input_buffer))){action_note("Sekvenca za cuvanje mora biti ASCII HEX tekst.");return;}
+        if(!get_ascii(script_edit,input_buffer,sizeof(input_buffer))){action_note("The sequence to save must be ASCII HEX text.");return;}
         file=pCreateFileW(path,0x40000000u,1,0,2,0x80,0); /* CREATE_ALWAYS */
-        if(!valid_handle(file)){action_note("SEKVENCA.txt nije mogla biti sacuvana.");return;}
+        if(!valid_handle(file)){action_note("SEKVENCA.txt could not be saved.");return;}
         n=string_len(input_buffer);i=pWriteFile(file,input_buffer,n,&w,0) && w==n;pCloseHandle(file);
-        action_note(i?"Sacuvano u SEKVENCA.txt pored programa.":"Greska pisanja SEKVENCA.txt.");return;
+        action_note(i?"Saved to SEKVENCA.txt beside the executable.":"Error writing SEKVENCA.txt.");return;
     }
     file=pCreateFileW(path,0x80000000u,1,0,3,0x80,0);
-    if(!valid_handle(file)){action_note("SEKVENCA.txt nije pronadjena pored programa.");return;}
+    if(!valid_handle(file)){action_note("SEKVENCA.txt was not found beside the executable.");return;}
     i=pReadFile(file,input_buffer,sizeof(input_buffer)-1,&n,0);pCloseHandle(file);
-    if(!i || n>=sizeof(input_buffer)-1){action_note("SEKVENCA.txt je prevelika ili nije citljiva.");return;}
+    if(!i || n>=sizeof(input_buffer)-1){action_note("SEKVENCA.txt is too large or cannot be read.");return;}
     if(n>=3 && (uint8_t)input_buffer[0]==0xef && (uint8_t)input_buffer[1]==0xbb && (uint8_t)input_buffer[2]==0xbf)start=3;
-    for(i=start;i<n;i++)if((uint8_t)input_buffer[i]>127 || !input_buffer[i]){action_note("SEKVENCA.txt mora sadrzati ASCII HEX tekst (UTF-8 bez posebnih slova).");return;}
+    for(i=start;i<n;i++)if((uint8_t)input_buffer[i]>127 || !input_buffer[i]){action_note("SEKVENCA.txt must contain ASCII HEX text (UTF-8 without non-ASCII characters).");return;}
     for(i=start;i<n;i++)input_wide[i-start]=(uint8_t)input_buffer[i];input_wide[n-start]=0;pSetWindowTextW(script_edit,input_wide);
-    action_note("SEKVENCA.txt ucitana. Nista nije poslato.");
+    action_note("SEKVENCA.txt loaded. No frames were sent.");
 }
 
 #define BIND(target,module,name) do { *(void **)(&(target))=get_proc((module),(name));if(!(target))return 0; } while(0)
@@ -369,17 +369,17 @@ static void disconnect_adapter(void){
 }
 static int open_adapter(void){
     Status s;Config cfg;ConfigList list;Dword filter;char fw[256],driver[256],api[256],rate[40];
-    if(connected)return 1;if(log_failed){action_note("Log nije dostupan. Raspakuj ZIP u folder gdje mozes pisati.");return 0;}
-    if(!get_ascii(rate_edit,rate,sizeof(rate)) || !can_uint(rate,1000000,&bitrate) || bitrate<10000){action_note("Brzina CAN-a mora biti 10000 do 1000000 bit/s.");return 0;}
+    if(connected)return 1;if(log_failed){action_note("Log unavailable. Extract the ZIP to a writable folder.");return 0;}
+    if(!get_ascii(rate_edit,rate,sizeof(rate)) || !can_uint(rate,1000000,&bitrate) || bitrate<10000){action_note("CAN bitrate must be between 10000 and 1000000 bit/s.");return 0;}
     extended=pSendMessageW(extended_check,0xf0,0,0)==1;
-    if(pGetWindowTextW(path_edit,dll_path,2048)<=0){action_note("Nije pronadjen DLL. Unesi punu putanju do op20pt32.dll.");return 0;}
+    if(pGetWindowTextW(path_edit,dll_path,2048)<=0){action_note("DLL not found. Enter the full path to op20pt32.dll.");return 0;}
     dll_path[2047]=0;text("CONNECT DLL: ");wide_text(dll_path);text("\r\nCAN bitrate=");number(bitrate);text(" extended=");number(extended);text(" pins=6/14\r\n");
     driver_dll=pLoadLibraryExW(dll_path,0,8);
-    if(!driver_dll){text("Win32 LoadLibrary error=");number(pGetLastError());text("\r\n");action_note("DLL se ne ucitava. Potreban je x86 OpenPort DLL i instaliran drajver.");return 0;}
-    if(!bind_driver(driver_dll)){action_note("Izabrani DLL nema potrebne J2534 funkcije.");goto bad;}
-    s=jOpen(0,&device);if(s){error("PassThruOpen",s);action_note("OpenPort nije otvoren. Zatvori ODIS/VCDS/VCP i druge snimace.");goto bad;}device_open=1;
+    if(!driver_dll){text("Win32 LoadLibrary error=");number(pGetLastError());text("\r\n");action_note("Cannot load DLL. An x86 OpenPort DLL and installed driver are required.");return 0;}
+    if(!bind_driver(driver_dll)){action_note("The selected DLL lacks required J2534 functions.");goto bad;}
+    s=jOpen(0,&device);if(s){error("PassThruOpen",s);action_note("Cannot open OpenPort. Close ODIS/VCDS/VCP and other capture tools.");goto bad;}device_open=1;
     if(jVersion && !jVersion(device,fw,driver,api)){fw[255]=driver[255]=api[255]=0;text("FW: ");text(fw);text("\r\nDriver: ");text(driver);text("\r\nAPI: ");text(api);text("\r\n");}
-    s=jConnect(device,5,extended?0x100:0,bitrate,&channel);if(s){error("PassThruConnect",s);action_note("CAN veza nije otvorena. Provjeri brzinu i TXT log.");goto bad;}channel_open=1;
+    s=jConnect(device,5,extended?0x100:0,bitrate,&channel);if(s){error("PassThruConnect",s);action_note("Cannot open CAN connection. Check the bitrate and TXT log.");goto bad;}channel_open=1;
     cfg.Parameter=3;cfg.Value=0;list.NumOfParams=1;list.ConfigPtr=&cfg;
     s=jIoctl(channel,2,&list,0);if(s){error("SET_CONFIG LOOPBACK=0",s);goto configbad;}
     gw_zero(&mask_message,sizeof(mask_message));gw_zero(&pattern_message,sizeof(pattern_message));
@@ -388,8 +388,8 @@ static int open_adapter(void){
     s=jFilter(channel,1,&mask_message,&pattern_message,0,&filter);if(s){error("PassThruStartMsgFilter",s);goto configbad;}
     s=jIoctl(channel,8,0,0);if(s){error("CLEAR_RX_BUFFER",s);goto configbad;}
     failed=0;connected=1;buttons_init(&buttons,send_button,0,pGetTickCount());set_connection_controls();
-    action_note("Povezano. Slanje je zaustavljeno; izaberi komandu ili dugme volana.");return 1;
-configbad:action_note("Greska podesavanja J2534 kanala. Detalji su u TXT logu.");
+    action_note("Connected. Transmission is stopped; select a command or steering button.");return 1;
+configbad:action_note("J2534 channel configuration failed. See the TXT log.");
 bad:disconnect_adapter();return 0;
 }
 static LResult WINAPI window_proc(Handle hwnd,unsigned msg,uintptr_t wp,intptr_t lp){
@@ -397,16 +397,16 @@ static LResult WINAPI window_proc(Handle hwnd,unsigned msg,uintptr_t wp,intptr_t
         case 101:wheel_click(9,200);break;case 102:wheel_click(0x22,200);break;case 103:wheel_click(10,200);break;
         case 104:wheel_click(0x29,200);break;case 105:wheel_click(0x28,200);break;case 106:wheel_click(0x23,200);break;
         case 107:wheel_click(0x22,2000);break;case 108:wheel_click(0x28,2000);break;case 109:wheel_click(0x29,2000);break;
-        case 110:stop_all("STOP: slanje zaustavljeno, tipka otpustena ako je bila aktivna.");break;
+        case 110:stop_all("STOP: transmission stopped; active button released if applicable.");break;
         case 111:running=0;break;case 120:open_adapter();break;
-        case 121:disconnect_adapter();action_note("Veza prekinuta.");break;
+        case 121:disconnect_adapter();action_note("Disconnected.");break;
         case 130:manual_send(0);break;case 131:manual_send(1);break;case 132:sequence_start();break;
         case 133:apply_filter();break;
         case 134:monitor_count=monitor_next=0;monitor_dirty=1;refresh_monitor();break;
         case 135:sequence_file(1);break;case 136:sequence_file(0);break;
         }return 0;}
     if(msg==0x1c && !wp && connected && pSendMessageW(background_check,0xf0,0,0)!=1){
-        if(schedule.active || wheel_enabled || manual_key_held)stop_all("STOP: prozor nije aktivan. Za rad u pozadini ukljuci tu opciju.");return 0;}
+        if(schedule.active || wheel_enabled || manual_key_held)stop_all("STOP: window lost focus. Enable background sending to continue.");return 0;}
     if(msg==0x10 || msg==2){running=0;return 0;}
     return pDefWindowProcW(hwnd,msg,wp,lp);
 }
@@ -417,43 +417,43 @@ static Handle control(const char *type,const char *label,int x,int y,int w,int h
 }
 static int make_window(void){
     WindowClass wc;WChar name[64],title[80];unsigned i;
-    static const char *labels[]={"< LIJEVO","GORE ^","DESNO >","NAZAD","OK","DOLJE v","GORE 2 s","OK 2 s","NAZAD 2 s"};
-    copy_ascii_w(name,"OpenPortTestTableV1");copy_ascii_w(title,"OpenPort - test instrument table / CAN komande V1");
+    static const char *labels[]={"< LEFT","UP ^","RIGHT >","BACK","OK","DOWN v","UP 2 s","OK 2 s","BACK 2 s"};
+    copy_ascii_w(name,"OpenPortTestTableV1");copy_ascii_w(title,"OpenPort - instrument cluster test / CAN commands V1");
     gw_zero(&wc,sizeof(wc));wc.size=sizeof(wc);wc.proc=window_proc;wc.instance=pGetModuleHandleW(0);wc.name=name;
     wc.cursor=pLoadCursorW(0,(const WChar *)(uintptr_t)32512);wc.background=(Handle)16;
     if(!pRegisterClassExW(&wc))return 0;
     window=pCreateWindowExW(0,name,title,0x00ca0000u,0x80000000u,0x80000000u,1000,740,0,0,wc.instance,0);if(!window)return 0;
-    status_label=control("STATIC","NIJE POVEZANO",16,12,950,42,0,0);
+    status_label=control("STATIC","DISCONNECTED",16,12,950,42,0,0);
     control("STATIC","J2534 DLL:",16,62,90,22,0,0);path_edit=control("EDIT","",106,58,860,25,200,0x00800080u);
     if(find_driver())pSetWindowTextW(path_edit,dll_path);else caption(path_edit,"C:\\Windows\\SysWOW64\\op20pt32.dll");
     control("STATIC","CAN bit/s:",16,96,80,22,0,0);rate_edit=control("EDIT","500000",96,91,100,26,201,0x00800080u);
     extended_check=control("BUTTON","29-bit ID",210,91,110,26,202,3);
-    connect_button=control("BUTTON","POVEZI",334,90,100,28,120,0);disconnect_button=control("BUTTON","PREKINI VEZU",444,90,130,28,121,0);
-    background_check=control("BUTTON","Nastavi slanje u pozadini",600,91,225,26,203,3);
-    control("BUTTON","STOP SVE",836,90,130,28,110,0);
-    control("STATIC","RUCNA CAN KOMANDA  |  ID i podaci su HEX; najvise 8 bajtova",16,130,640,22,0,0);
+    connect_button=control("BUTTON","CONNECT",334,90,100,28,120,0);disconnect_button=control("BUTTON","DISCONNECT",444,90,130,28,121,0);
+    background_check=control("BUTTON","Keep sending in background",600,91,225,26,203,3);
+    control("BUTTON","STOP ALL",836,90,130,28,110,0);
+    control("STATIC","MANUAL CAN FRAME  |  HEX ID and data; maximum 8 bytes",16,130,640,22,0,0);
     control("STATIC","CAN ID",16,158,65,22,0,0);id_edit=control("EDIT","5C1",83,154,100,26,204,0x00800080u);
-    control("STATIC","Podaci",202,158,60,22,0,0);data_edit=control("EDIT","00 00 00 60",266,154,410,26,205,0x00800080u);
-    control("BUTTON","POSALJI 1x",696,153,130,28,130,0);
+    control("STATIC","Data",202,158,60,22,0,0);data_edit=control("EDIT","00 00 00 60",266,154,410,26,205,0x00800080u);
+    control("BUTTON","SEND ONCE",696,153,130,28,130,0);
     control("STATIC","Interval ms",16,193,80,22,0,0);interval_edit=control("EDIT","100",100,188,82,26,206,0x00800080u);
-    control("STATIC","Ponavljanja (0=stalno)",201,193,160,22,0,0);count_edit=control("EDIT","10",365,188,95,26,207,0x00800080u);
-    control("BUTTON","PONAVLJAJ",480,187,150,29,131,0);
-    control("STATIC","TX prihvacen znaci da je drajver prihvatio okvir.",646,194,320,22,0,0);
-    control("STATIC","SEKVENCA  |  ID#HEX@pauza_ms  |  ; komentar  |  do 128 redova",16,232,640,22,0,0);
+    control("STATIC","Repeats (0=continuous)",201,193,160,22,0,0);count_edit=control("EDIT","10",365,188,95,26,207,0x00800080u);
+    control("BUTTON","REPEAT",480,187,150,29,131,0);
+    control("STATIC","TX accepted means driver acceptance.",646,194,320,22,0,0);
+    control("STATIC","SEQUENCE  |  ID#HEX@delay_ms  |  ; comment  |  up to 128 lines",16,232,640,22,0,0);
     script_edit=control("EDIT","",16,258,610,122,208,0x00a010c4u);
     copy_ascii_w(input_wide,example_script);pSetWindowTextW(script_edit,input_wide);pSendMessageW(script_edit,0xc5,21000,0);
-    control("STATIC","Ciklusi (0=stalno)",16,392,125,22,0,0);cycles_edit=control("EDIT","1",143,387,80,27,209,0x00800080u);
-    control("BUTTON","POKRENI SEKVENCU",235,386,170,29,132,0);
-    control("BUTTON","SACUVAJ",416,386,98,29,135,0);control("BUTTON","UCITAJ",526,386,100,29,136,0);
-    control("STATIC","VOLAN / MENI TABLE  |  profil 5C1",654,232,312,22,0,0);
+    control("STATIC","Cycles (0=continuous)",16,392,125,22,0,0);cycles_edit=control("EDIT","1",143,387,80,27,209,0x00800080u);
+    control("BUTTON","RUN SEQUENCE",235,386,170,29,132,0);
+    control("BUTTON","SAVE",416,386,98,29,135,0);control("BUTTON","LOAD",526,386,100,29,136,0);
+    control("STATIC","STEERING / CLUSTER MENU  |  5C1 profile",654,232,312,22,0,0);
     for(i=0;i<9;i++)if(!control("BUTTON",labels[i],654+(i%3)*106,258+(i/3)*39,100,33,101+i,0))return 0;
-    control("STATIC","Klik 200 ms. Dugi pritisak 2 s.\r\nSTOP prekida i salje otpustanje.",654,381,312,40,0,0);
-    control("STATIC","RX/TX PRIKAZ  |  filter ID-eva:",16,434,220,22,0,0);filter_edit=control("EDIT","*",240,430,240,26,210,0x00800080u);
-    control("BUTTON","PRIMIJENI",491,430,105,27,133,0);pause_check=control("BUTTON","Pauza prikaza",608,430,155,27,211,3);
-    control("BUTTON","OCISTI PRIKAZ",782,430,184,27,134,0);
+    control("STATIC","Click 200 ms. Long press 2 s.\r\nSTOP ends sending and releases.",654,381,312,40,0,0);
+    control("STATIC","RX/TX MONITOR  |  ID filter:",16,434,220,22,0,0);filter_edit=control("EDIT","*",240,430,240,26,210,0x00800080u);
+    control("BUTTON","APPLY",491,430,105,27,133,0);pause_check=control("BUTTON","Pause display",608,430,155,27,211,3);
+    control("BUTTON","CLEAR DISPLAY",782,430,184,27,134,0);
     monitor_edit=control("EDIT","",16,468,950,160,212,0x00a008c4u);pSendMessageW(monitor_edit,0xc5,14499,0);
-    action_label=control("STATIC","Povezi OpenPort; slanje pocinje tek kada izaberes komandu.",16,642,950,32,0,0);
-    control("STATIC","RAW CAN preko pinova 6/14. TXT/CSV se snimaju pored EXE-a. Esc = STOP. Ovaj alat koristi tvoj instalirani OpenPort drajver.",16,679,950,22,0,0);
+    action_label=control("STATIC","Connect OpenPort; sending starts only when you select a command.",16,642,950,32,0,0);
+    control("STATIC","RAW CAN on pins 6/14. TXT/CSV saved beside EXE. Esc = STOP. Uses the installed OpenPort driver.",16,679,950,22,0,0);
     if(!status_label || !action_label || !script_edit || !monitor_edit || !data_edit || !path_edit)return 0;
     set_connection_controls();pShowWindow(window,5);pUpdateWindow(window);return 1;
 }
@@ -481,12 +481,12 @@ void entry(void){
     started=pGetTickCount();make_log();
     if(!make_window()){exit_code=2;goto done;}
     text("OPENPORT TEST TABLE V1 / 21.10.2026\r\nRAW classic CAN panel. Default 500000 bit/s, 11-bit IDs, OBD pins 6/14.\r\nNo automatic TX on launch or connect. Commands start only after an explicit GUI action.\r\nTX_ACCEPTED is driver acceptance, not proof of ECU response or LCD behavior.\r\n");
-    if(log_failed)action_note("Log nije napravljen. Raspakuj ZIP u folder gdje mozes pisati.");
+    if(log_failed)action_note("Cannot create log. Extract the ZIP to a writable folder.");
     last_flush=last_status=pGetTickCount();update_status();
     while(running){
         processed=0;while(processed++<64 && pPeekMessageW(&msg,0,0,0,1)){
             if(msg.message==0x12){running=0;break;}
-            if(msg.message==0x100 && msg.wparam==27){stop_all("STOP sa tastature.");continue;}
+            if(msg.message==0x100 && msg.wparam==27){stop_all("Keyboard STOP.");continue;}
             pTranslateMessage(&msg);pDispatchMessageW(&msg);if(!running)break;
         }
         if(!running)break;
@@ -497,7 +497,7 @@ void entry(void){
             if(buttons.fault)failed=1;
         }
         if(connected && (failed || log_failed)){
-            disconnect_adapter();exit_code=1;action_note("GRESKA: slanje i veza su zaustavljeni. Pogledaj TXT/CSV. Mozes ponovo povezati.");
+            disconnect_adapter();exit_code=1;action_note("ERROR: transmission and connection stopped. See TXT/CSV. You can reconnect.");
         }
         if(pGetTickCount()-last_status>=200){update_status();last_status=pGetTickCount();}
         if(pGetTickCount()-last_flush>=1000){
