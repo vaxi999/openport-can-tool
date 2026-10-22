@@ -14,6 +14,10 @@ A small native Windows application for sending and recording classic CAN frames 
 
 ## Requirements and use
 
+**Physical CAN connection is required:** connect the OpenPort CAN-H and CAN-L lines to the corresponding CAN-H and CAN-L wires of the instrument cluster. A USB connection to the PC alone is not enough. Use the correct pinout for your cluster and adapter.
+
+**Povezivanje:** OpenPort mora biti povezan na CAN žice instrument table: CAN-H na CAN-H, a CAN-L na CAN-L. Sam USB priključak na računar nije dovoljan. Koristite odgovarajući pinout za svoju tablu i adapter.
+
 Windows with an installed **x86 J2534 OpenPort driver**, including on 64-bit Windows. The driver is not distributed in this repository. Close other applications using the adapter before connecting.
 
 Build the executable as described below, then run `OPENPORT_TEST_TABLE.exe`. Select the installed driver, the correct bitrate and identifier mode, and connect. Connecting alone does not send a test command. Enter a CAN identifier in hexadecimal and up to eight hexadecimal payload bytes, then choose single transmission or repetition.
