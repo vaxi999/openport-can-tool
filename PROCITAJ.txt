@@ -1,0 +1,97 @@
+OPENPORT TEST TABLE V1 — test instrument table i slanje CAN komandi
+21.10.2026.
+
+POKRETANJE
+1. Raspakuj cijeli ZIP u jedan folder.
+2. Zatvori ODIS, VCDS, VCP i druge programe koji koriste OpenPort.
+3. Ostavi postojece napajanje i CAN vezu table na stolu.
+4. Pokreni OPENPORT_TEST_TABLE.exe ili POKRENI.bat.
+5. Klikni POVEZI. Za tvoj postojeci spoj ostavi 500000 bit/s i 29-bit iskljuceno.
+
+EXE je Windows x86, radi i na 64-bitnom Windowsu sa instaliranim x86 J2534
+OpenPort drajverom. Nisu potrebni Python, PowerShell ni instalacija ovog alata.
+Program trazi OpenPort u J2534 registru. Putanju mozes promijeniti prije povezivanja.
+U tvom posljednjem logu koriscen je C:\Windows\SysWOW64\op20pt32.dll.
+Program i ZIP ne sadrze Tactrix drajver; koriste onaj koji ti je vec instaliran.
+
+SLANJE RUCNE KOMANDE
+- CAN ID je HEX: na primjer 5C1. Moze i 0x5C1.
+- Podaci su HEX bajtovi: 00 00 00 60 ili 00000060.
+- Dozvoljeno je 0 do 8 bajtova: classic CAN, bez CAN FD-a.
+- POSALJI 1x salje jedan okvir.
+- PONAVLJAJ salje okvir u intervalu 20–60000 ms.
+- Ponavljanja = ukupan broj okvira; 0 = slanje dok ne kliknes STOP.
+- CAN brzina se unosi u bit/s: 500000, 100000, 125000 itd.
+- 29-bit se bira prije povezivanja. Za promjenu prekini vezu pa povezi ponovo.
+
+Ovo je RAW CAN alat. Podaci se salju upravo kako su unijeti. J2534 ISO-TP,
+VW TP2.0, KWP/UDS sesije i BAP/DDP duzi paketi ne sastavljaju se automatski.
+Za te protokole u RAW polje idu vec pripremljeni CAN okviri, sa potrebnim
+zaglavljima, brojevima sekvence i potvrdama. Sam CAN ID nije dijagnosticka adresa.
+U ovoj verziji nema unaprijed pretpostavljenih komandi za kazaljke, gorivo ili lampice.
+
+SEKVENCA KOMANDI
+Svaki red ima format:
+  CAN_ID#HEX_PODACI@PAUZA_POSLIJE_OKVIRA_U_MS
+
+Primjer klika OK, pa otpustanje:
+  5C1#28 00 00 60@100
+  5C1#28 00 00 60@100
+  5C1#00 00 00 60@100
+  5C1#00 00 00 60@200
+
+Prvi okvir se salje odmah. Broj poslije @ je pauza nakon tog okvira, do
+sljedeceg reda ili sljedeceg ciklusa. Poslije posljednjeg okvira posljednjeg
+ciklusa program zavrsava bez dodatnog cekanja. Ciklusi 0 = stalno.
+Prazni redovi i komentari koji pocinju sa ; ili // su dozvoljeni.
+Do 128 komandi. Program provjerava cijelu sekvencu prije prvog slanja.
+Intervali su softverski, zavise od Windowsa i drajvera; nisu precizan vremenski generator.
+SACUVAJ/UCITAJ koriste SEKVENCA.txt pored EXE-a. Ucitavanje ne salje komande.
+Tekst komandi je ASCII; moze UTF-8 sa ili bez BOM-a. Ne koristi posebna slova
+u komentarima ove datoteke.
+
+DUGMAD VOLANA / MENIJA
+Preuzet je profil iz prethodnog OPENPORT_VOLAN_V1 alata koji ti je vec radio:
+  GORE   5C1 / 22 00 00 60
+  DOLJE  5C1 / 23 00 00 60
+  LIJEVO 5C1 / 09 00 00 60
+  DESNO  5C1 / 0A 00 00 60
+  OK     5C1 / 28 00 00 60
+  NAZAD  5C1 / 29 00 00 60
+  OTPUSTI     00 00 00 60
+
+Obican klik traje 200 ms; posebna dugmad traju 2 s. Period je 100 ms,
+sa 200 ms otpustenog stanja izmedju klikova. Nakon prvog klika program
+salje neutralno stanje svakih 100 ms dok ne kliknes STOP.
+Dugmad rade u 11-bit rezimu. Rucno slanje i sekvenca zamjenjuju aktivni
+profil volana; klik volana prekida aktivno rucno ponavljanje/sekvencu.
+
+STOP I POZADINA
+STOP SVE ili Esc prekidaju ponavljanje, sekvencu i profil volana.
+Ako je ovaj alat upravo slao prepoznatu 5C1 tipku, pokusava i otpustanje.
+STOP ne prekida samu CAN vezu: RX snimanje ostaje aktivno.
+PREKINI VEZU i zatvaranje prozora zaustavljaju slanje i zatvaraju OpenPort.
+Podrazumijevano se slanje zaustavlja kada predjes na drugi prozor.
+Za nastavak slanja pri radu u drugom prozoru oznaci Nastavi slanje u pozadini.
+Greska TX/RX ili snimanja zaustavlja slanje i zatvara vezu. Kod greske drajvera
+mozes ponovo kliknuti POVEZI; kod greske snimanja pokreni alat u drugom folderu.
+
+PRIKAZ I LOGOVI
+Donji prikaz cuva posljednjih 96 vidljivih RX/TX dogadjaja.
+Filter je samo za prikaz: npr. 5C1,6C8,6DF ili * za sve.
+Pauza prikaza i OCISTI PRIKAZ ne prekidaju CSV snimanje.
+LOG_TEST_TABLE_*.txt sadrzi putanju drajvera, verzije, radnje i greske.
+LOG_TEST_TABLE_*.csv sadrzi sve primljene okvire izabranog 11/29-bit rezima,
+TX_REQUEST, TX_ACCEPTED, TX_FAILED i adapter status dogadjaje.
+TX_ACCEPTED znaci prihvaceno u drajveru, a ne potvrdu reakcije instrument table.
+Adapter TX echo se odvaja od RX odgovora. Gubitak RX podataka se obiljezava.
+
+PROVJERA
+Provjereni su PE32 format, x86 ABI, uvozi, sve relokacije i ASLR struktura.
+Testirani su HEX parser, granice CAN ID-a/DLC-a, sekvence, ponavljanje,
+STOP/otpustanje, rad u pozadini, 29-bit zastavice, RX/echo razdvajanje,
+greske drajvera i ponovno povezivanje kroz zamjenske Win32/J2534 funkcije.
+ASan/UBSan testovi i 30000 nasumicnih ulaza parsera su prosli.
+Ova nova verzija jos nije izvrsena na stvarnom Windowsu/OpenPortu/tabli.
+Softverski test ne potvrdjuje fizicko CAN slanje ni reakciju LCD-a.
+Izvorni kod i rezultati provjere su ukljuceni u paket.

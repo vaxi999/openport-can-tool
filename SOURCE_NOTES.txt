@@ -1,0 +1,26 @@
+Build: python3 build_windows.py (Linux, Python 3, GCC -m32 objects, GNU binutils).
+Tests and rebuild: python3 verify_all.py.
+
+Windows executable is freestanding PE32 with no CRT, Python or .NET dependency.
+The standard loader imports LoadLibraryW and GetProcAddress; Win32/J2534 entry
+points bind at runtime. Functions use stdcall in the actual x86 build.
+The existing project's checked ELF32-to-COFF pipeline is reused; every
+relocation value is checked and a valid PE import directory/checksum is installed.
+
+Classic CAN uses J2534 ProtocolID 5, PASS_FILTER 1, CAN_29BIT_ID 0x100,
+four big-endian identifier bytes before the CAN payload, and PASSTHRU_MSG 4152 bytes.
+The x86 SCONFIG_LIST is 8 bytes. No programming voltage API is bound.
+J2534 reference header (primary project source):
+https://github.com/joeyoravec/j2534-logger/blob/master/ptshim32/j2534_v0404.h
+Manufacturer J2534 compatibility information:
+https://www.tactrix.com/index.php?option=com_content&view=article&id=68
+
+Steering payloads and the 500000 bit/s bench configuration are reused from
+the user's earlier OPENPORT_VOLAN_V1 and existing OpenPort session logs.
+This package adds a general raw CAN sender; it does not assume diagnostic
+transport, universal cluster actuator commands, or that a raw frame received
+by the interface is evidence of an on-screen response.
+
+Verification runs the actual frontend C source with explicit Win32/J2534
+test doubles, not an actual Windows GUI, USB device, or instrument cluster.
+See verification_build.json and verification_tests.json for exact limits.
