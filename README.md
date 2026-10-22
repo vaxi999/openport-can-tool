@@ -2,6 +2,10 @@
 
 A small native Windows application for sending and recording classic CAN frames through an installed OpenPort J2534 driver. Developed by Vasilije Doklestić for instrument-cluster bench experiments.
 
+## Screenshot
+
+![OpenPort CAN Tool — English Windows interface](docs/openport-can-tool.png)
+
 ## Features
 
 - Send a raw CAN frame once or repeatedly, with finite or continuous repetition.
