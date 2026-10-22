@@ -1,97 +1,110 @@
-OPENPORT TEST TABLE V1 — test instrument table i slanje CAN komandi
-21.10.2026.
+OPENPORT TEST TABLE V1 — instrument-cluster testing and CAN commands
+English interface and guide — 22 October 2026
 
-POKRETANJE
-1. Raspakuj cijeli ZIP u jedan folder.
-2. Zatvori ODIS, VCDS, VCP i druge programe koji koriste OpenPort.
-3. Ostavi postojece napajanje i CAN vezu table na stolu.
-4. Pokreni OPENPORT_TEST_TABLE.exe ili POKRENI.bat.
-5. Klikni POVEZI. Za tvoj postojeci spoj ostavi 500000 bit/s i 29-bit iskljuceno.
+STARTUP AND WIRING
+1. Build OPENPORT_TEST_TABLE.exe as described in README.md.
+2. Close ODIS, VCDS, VCP and other applications using OpenPort.
+3. Connect OpenPort CAN-H to the instrument cluster CAN-H wire, and CAN-L
+   to CAN-L. Use the correct pinout and power supply for your bench setup.
+   USB connection to the computer alone is not sufficient.
+4. Run OPENPORT_TEST_TABLE.exe or POKRENI.bat.
+5. Select the correct bitrate and identifier mode, then click CONNECT.
+   The original bench profile uses 500000 bit/s and 11-bit identifiers.
+   These settings are not universal for every cluster or CAN network.
 
-EXE je Windows x86, radi i na 64-bitnom Windowsu sa instaliranim x86 J2534
-OpenPort drajverom. Nisu potrebni Python, PowerShell ni instalacija ovog alata.
-Program trazi OpenPort u J2534 registru. Putanju mozes promijeniti prije povezivanja.
-U tvom posljednjem logu koriscen je C:\Windows\SysWOW64\op20pt32.dll.
-Program i ZIP ne sadrze Tactrix drajver; koriste onaj koji ti je vec instaliran.
+The executable is Windows x86 and also runs on 64-bit Windows with an
+installed x86 J2534 OpenPort driver. The executable does not require Python,
+PowerShell or .NET. Python is needed only for the supplied Linux build scripts.
+The application locates OpenPort through the J2534 registry. You can edit the
+DLL path before connecting. A common path is:
+  C:\Windows\SysWOW64\op20pt32.dll
+The repository does not include the Tactrix driver.
 
-SLANJE RUCNE KOMANDE
-- CAN ID je HEX: na primjer 5C1. Moze i 0x5C1.
-- Podaci su HEX bajtovi: 00 00 00 60 ili 00000060.
-- Dozvoljeno je 0 do 8 bajtova: classic CAN, bez CAN FD-a.
-- POSALJI 1x salje jedan okvir.
-- PONAVLJAJ salje okvir u intervalu 20–60000 ms.
-- Ponavljanja = ukupan broj okvira; 0 = slanje dok ne kliknes STOP.
-- CAN brzina se unosi u bit/s: 500000, 100000, 125000 itd.
-- 29-bit se bira prije povezivanja. Za promjenu prekini vezu pa povezi ponovo.
+MANUAL COMMANDS
+- CAN ID is hexadecimal, for example 5C1 or 0x5C1.
+- Data contains hexadecimal byte pairs: 00 00 00 60 or 00000060.
+- Classic CAN supports 0 to 8 payload bytes. CAN FD is not supported.
+- SEND ONCE sends a single frame.
+- REPEAT sends frames at an interval from 20 to 60000 ms.
+- Repeats is the total number of frames; 0 means continue until STOP.
+- Enter CAN bitrate in bit/s, for example 500000, 100000 or 125000.
+- Select 29-bit mode before connecting. Disconnect before changing it.
 
-Ovo je RAW CAN alat. Podaci se salju upravo kako su unijeti. J2534 ISO-TP,
-VW TP2.0, KWP/UDS sesije i BAP/DDP duzi paketi ne sastavljaju se automatski.
-Za te protokole u RAW polje idu vec pripremljeni CAN okviri, sa potrebnim
-zaglavljima, brojevima sekvence i potvrdama. Sam CAN ID nije dijagnosticka adresa.
-U ovoj verziji nema unaprijed pretpostavljenih komandi za kazaljke, gorivo ili lampice.
+This is a RAW CAN tool. It sends the bytes entered by the operator.
+It does not automatically assemble ISO-TP, VW TP2.0, KWP/UDS sessions or
+long BAP/DDP packets. Those protocols require correctly prepared CAN frames,
+including their headers, sequence numbers and acknowledgements as applicable.
+A CAN ID is not a diagnostic address. Universal gauge, fuel-level and warning
+lamp commands are not included.
 
-SEKVENCA KOMANDI
-Svaki red ima format:
-  CAN_ID#HEX_PODACI@PAUZA_POSLIJE_OKVIRA_U_MS
+COMMAND SEQUENCES
+Each line uses this format:
+  CAN_ID#HEX_DATA@DELAY_AFTER_FRAME_MS
 
-Primjer klika OK, pa otpustanje:
+Example: OK button press, followed by release, for the original bench profile:
   5C1#28 00 00 60@100
   5C1#28 00 00 60@100
   5C1#00 00 00 60@100
   5C1#00 00 00 60@200
 
-Prvi okvir se salje odmah. Broj poslije @ je pauza nakon tog okvira, do
-sljedeceg reda ili sljedeceg ciklusa. Poslije posljednjeg okvira posljednjeg
-ciklusa program zavrsava bez dodatnog cekanja. Ciklusi 0 = stalno.
-Prazni redovi i komentari koji pocinju sa ; ili // su dozvoljeni.
-Do 128 komandi. Program provjerava cijelu sekvencu prije prvog slanja.
-Intervali su softverski, zavise od Windowsa i drajvera; nisu precizan vremenski generator.
-SACUVAJ/UCITAJ koriste SEKVENCA.txt pored EXE-a. Ucitavanje ne salje komande.
-Tekst komandi je ASCII; moze UTF-8 sa ili bez BOM-a. Ne koristi posebna slova
-u komentarima ove datoteke.
+The first frame is sent immediately. The value after @ is the delay after that
+frame, before the next line or cycle. There is no extra wait after the last
+frame of the final cycle. Cycles = 0 means continuous operation.
+Blank lines and comments starting with ; or // are allowed.
+A sequence may contain up to 128 commands. The entire sequence is validated
+before any frame is sent. Timing depends on Windows and the driver; this is
+not a precision timing generator.
+SAVE and LOAD use SEKVENCA.txt beside the executable. Loading does not send
+commands. Use ASCII text; UTF-8 with or without a BOM is supported when the
+contents are ASCII. Avoid non-ASCII characters in sequence comments.
 
-DUGMAD VOLANA / MENIJA
-Preuzet je profil iz prethodnog OPENPORT_VOLAN_V1 alata koji ti je vec radio:
-  GORE   5C1 / 22 00 00 60
-  DOLJE  5C1 / 23 00 00 60
-  LIJEVO 5C1 / 09 00 00 60
-  DESNO  5C1 / 0A 00 00 60
-  OK     5C1 / 28 00 00 60
-  NAZAD  5C1 / 29 00 00 60
-  OTPUSTI     00 00 00 60
+STEERING / CLUSTER MENU BUTTONS
+The included profile comes from the original working bench setup:
+  UP      5C1 / 22 00 00 60
+  DOWN    5C1 / 23 00 00 60
+  LEFT    5C1 / 09 00 00 60
+  RIGHT   5C1 / 0A 00 00 60
+  OK      5C1 / 28 00 00 60
+  BACK    5C1 / 29 00 00 60
+  RELEASE       00 00 00 60
 
-Obican klik traje 200 ms; posebna dugmad traju 2 s. Period je 100 ms,
-sa 200 ms otpustenog stanja izmedju klikova. Nakon prvog klika program
-salje neutralno stanje svakih 100 ms dok ne kliknes STOP.
-Dugmad rade u 11-bit rezimu. Rucno slanje i sekvenca zamjenjuju aktivni
-profil volana; klik volana prekida aktivno rucno ponavljanje/sekvencu.
+These payloads are specific to that profile, not universal vehicle commands.
+A normal click lasts 200 ms; long-press buttons last 2 seconds. The frame
+period is 100 ms, with 200 ms of released state between clicks. After the
+first click, neutral frames continue every 100 ms until STOP.
+Steering buttons work in 11-bit mode. Manual sending and sequences replace
+an active steering profile; a steering click stops active manual repetition
+or a sequence.
 
-STOP I POZADINA
-STOP SVE ili Esc prekidaju ponavljanje, sekvencu i profil volana.
-Ako je ovaj alat upravo slao prepoznatu 5C1 tipku, pokusava i otpustanje.
-STOP ne prekida samu CAN vezu: RX snimanje ostaje aktivno.
-PREKINI VEZU i zatvaranje prozora zaustavljaju slanje i zatvaraju OpenPort.
-Podrazumijevano se slanje zaustavlja kada predjes na drugi prozor.
-Za nastavak slanja pri radu u drugom prozoru oznaci Nastavi slanje u pozadini.
-Greska TX/RX ili snimanja zaustavlja slanje i zatvara vezu. Kod greske drajvera
-mozes ponovo kliknuti POVEZI; kod greske snimanja pokreni alat u drugom folderu.
+STOP AND BACKGROUND OPERATION
+STOP ALL or Escape stops repetition, sequences and the steering profile.
+If this tool was sending a recognized 5C1 button press, it also attempts to
+send a release frame. STOP keeps the CAN connection and RX recording active.
+DISCONNECT and closing the window stop sending and close OpenPort.
+By default, transmission stops when the window loses focus. Enable
+Keep sending in background if transmission must continue in another window.
+A TX, RX or recording error stops sending and closes the connection.
+After a driver error, you can reconnect. If recording fails, move the tool
+to a writable folder.
 
-PRIKAZ I LOGOVI
-Donji prikaz cuva posljednjih 96 vidljivih RX/TX dogadjaja.
-Filter je samo za prikaz: npr. 5C1,6C8,6DF ili * za sve.
-Pauza prikaza i OCISTI PRIKAZ ne prekidaju CSV snimanje.
-LOG_TEST_TABLE_*.txt sadrzi putanju drajvera, verzije, radnje i greske.
-LOG_TEST_TABLE_*.csv sadrzi sve primljene okvire izabranog 11/29-bit rezima,
-TX_REQUEST, TX_ACCEPTED, TX_FAILED i adapter status dogadjaje.
-TX_ACCEPTED znaci prihvaceno u drajveru, a ne potvrdu reakcije instrument table.
-Adapter TX echo se odvaja od RX odgovora. Gubitak RX podataka se obiljezava.
+DISPLAY AND LOGS
+The monitor shows the last 96 visible RX/TX events.
+The ID filter affects only the display: for example 5C1,6C8,6DF or * for all.
+Pause display and CLEAR DISPLAY do not interrupt CSV recording.
+LOG_TEST_TABLE_*.txt contains the driver path, versions, actions and errors.
+LOG_TEST_TABLE_*.csv contains received frames for the selected identifier mode,
+TX_REQUEST, TX_ACCEPTED, TX_FAILED and adapter status events.
+TX_ACCEPTED means driver acceptance, not proof of a cluster response.
+Adapter TX echoes are separated from RX responses. RX data loss is marked.
 
-PROVJERA
-Provjereni su PE32 format, x86 ABI, uvozi, sve relokacije i ASLR struktura.
-Testirani su HEX parser, granice CAN ID-a/DLC-a, sekvence, ponavljanje,
-STOP/otpustanje, rad u pozadini, 29-bit zastavice, RX/echo razdvajanje,
-greske drajvera i ponovno povezivanje kroz zamjenske Win32/J2534 funkcije.
-ASan/UBSan testovi i 30000 nasumicnih ulaza parsera su prosli.
-Ova nova verzija jos nije izvrsena na stvarnom Windowsu/OpenPortu/tabli.
-Softverski test ne potvrdjuje fizicko CAN slanje ni reakciju LCD-a.
-Izvorni kod i rezultati provjere su ukljuceni u paket.
+VERIFICATION
+Build checks cover PE32 structure, x86 ABI, imports, relocation values and ASLR.
+The native test suite uses mocked Win32/J2534 functions to exercise parsing,
+CAN ID/DLC limits, sequences, repetition, STOP/release, background operation,
+29-bit flags, RX/echo handling, driver errors and reconnection. ASan/UBSan
+checks and 30000 randomized parser inputs are included.
+
+On 22 October 2026, the maintainer reported that the original version worked
+on his physical OpenPort setup. This English interface revision has passed
+software verification; it has not received a separate physical-device test.
+Hardware compatibility beyond the reported setup is not established.
