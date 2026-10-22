@@ -18,7 +18,7 @@ A small native Windows application for sending and recording classic CAN frames 
 
 Windows with an installed **x86 J2534 OpenPort driver**, including on 64-bit Windows. The driver is not distributed in this repository. Close other applications using the adapter before connecting.
 
-Build the executable as described below, then run `OPENPORT_TEST_TABLE.exe`. Select the installed driver, the correct bitrate and identifier mode, and connect. Connecting alone does not send a test command. Enter a CAN identifier in hexadecimal and up to eight hexadecimal payload bytes, then choose single transmission or repetition.
+[Download the Windows executable](https://github.com/vaxi999/openport-can-tool/raw/refs/heads/main/OPENPORT_TEST_TABLE.exe), or download the repository ZIP and extract it to a writable folder. Run `OPENPORT_TEST_TABLE.exe`; compiling is optional. Select the installed driver, the correct bitrate and identifier mode, and connect. Connecting alone does not send a test command. Enter a CAN identifier in hexadecimal and up to eight hexadecimal payload bytes, then choose single transmission or repetition.
 
 Sequence syntax:
 
@@ -33,6 +33,8 @@ CAN_ID#HEX_BYTES@DELAY_AFTER_FRAME_MS
 This is a **raw classic CAN tool**. It does not automatically implement ISO-TP, VW TP2.0, UDS/KWP sessions, or BAP/DDP packet assembly. CAN FD is not supported. Timing depends on Windows and the driver. A TX acceptance event means the driver accepted the frame, not that a module acted on it.
 
 Use on a controlled bench with hardware you own or are authorized to test. Incorrect CAN traffic can affect connected modules. Stop ends this tool's transmission; it cannot undo actions already taken by a module.
+
+Prebuilt English executable SHA-256: `f63b5f9dc5d361a6bd4a5b072bafba5c27dc6f35eed72e0a0110a636092466a0`.
 
 ## Build and verification
 
