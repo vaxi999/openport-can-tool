@@ -1,0 +1,8 @@
+build/
+*.exe
+__pycache__/
+LOG_*.txt
+LOG_*.csv
+verification_build.json
+verification_tests.json
+PACKAGE_SHA256.json
