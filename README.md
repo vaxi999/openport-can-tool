@@ -43,7 +43,9 @@ python3 verify_all.py
 
 The build converts freestanding ELF32 objects to COFF, links a PE32 executable, and checks relocations, imports and ASLR structures. Tests exercise the parser, sender scheduling and frontend with mocked Win32/J2534 functions using AddressSanitizer and UndefinedBehaviorSanitizer.
 
-**Verification limit:** these automated tests do not execute the actual Windows GUI, USB adapter or cluster. The source archive's documentation stated that this version had not yet been run on physical Windows/OpenPort hardware. Physical compatibility remains unverified here.
+**Hardware test — maintainer report, 22 October 2026:** Vasilije Doklestić reports testing the tool with a physical OpenPort setup and confirms that everything worked in his test. This report applies to the tested setup; it does not establish compatibility with every adapter, driver version or vehicle module. A detailed hardware and driver matrix has not yet been recorded.
+
+**Automated-test limit:** the automated suite uses mocked Win32/J2534 functions and does not itself execute the actual Windows GUI, USB adapter or cluster. Older notes in the original package describe the pre-hardware-test status.
 
 ## Contributing
 
